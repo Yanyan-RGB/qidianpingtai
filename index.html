@@ -1237,16 +1237,6 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>所属系统</label>
-                    <select id="roleSystem">
-                        <option value="">请选择系统</option>
-                        <option value="crm">客户关系管理系统</option>
-                        <option value="erp">企业资源计划系统</option>
-                        <option value="hr">人力资源管理系统</option>
-                        <option value="finance">财务管理系统</option>
-                    </select>
-                </div>
-                <div class="form-group">
                     <label>角色名</label>
                     <input type="text" id="roleName" placeholder="请输入角色名称">
                 </div>
@@ -1256,6 +1246,16 @@
                         <option value="common">普通角色组</option>
                         <option value="system">系统角色组</option>
                         <option value="new">新零售角色</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>所属系统</label>
+                    <select id="roleSystem">
+                        <option value="">请选择系统</option>
+                        <option value="crm">客户关系管理系统</option>
+                        <option value="erp">企业资源计划系统</option>
+                        <option value="hr">人力资源管理系统</option>
+                        <option value="finance">财务管理系统</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -1777,7 +1777,7 @@
     <div class="modal-overlay" id="formModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 id="formModalTitle">新建表单</h4>
+                <h4 id="formModalTitle">新增表单</h4>
                 <button class="modal-close" onclick="closeModal('formModal')">&times;</button>
             </div>
             <div class="modal-body">
@@ -1804,11 +1804,14 @@
                     <input type="text" id="formCode" placeholder="请输入表单编码" readonly style="background-color: #f5f5f5;">
                 </div>
                 <div class="form-group">
-                    <label>表单类型 <span class="required">*</span></label>
-                    <select id="formType">
-                        <option value="manual">手动添加</option>
-                        <option value="system">系统添加</option>
-                    </select>
+                    <label>状态</label>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
+                        <label class="switch">
+                            <input type="checkbox" id="formStatus" checked onchange="toggleFormStatusText(this)">
+                            <span class="slider"></span>
+                        </label>
+                        <span id="formStatusText" style="color: #666; font-size: 14px;">启用</span>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>备注</label>
@@ -1931,7 +1934,6 @@
         function renderExternalSystemsPage() {
             const contentArea = document.getElementById('contentArea');
             contentArea.innerHTML = `
-                <div class="page-title">外部系统管理</div>
                 <div class="permission-tabs">
                     <div class="permission-tab ${currentSubPage === 'system' ? 'active' : ''}" onclick="switchExternalTab('system')">
                         <i class="fas fa-cogs"></i>
@@ -1993,7 +1995,6 @@
                         <td>${system.updater}</td>
                         <td>
                             <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;"><i class="fas fa-edit"></i> 编辑</button>
-                            <button class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;"><i class="fas fa-trash"></i> 删除</button>
                             <button class="btn btn-info" style="padding: 4px 8px; font-size: 12px;" onclick="linkFormToSystem(${system.id})">
                                 <i class="fas fa-link"></i> 关联单据
                             </button>
@@ -2010,6 +2011,9 @@
                             <input type="text" placeholder="搜索系统名称或编码...">
                         </div>
                         <div class="table-actions">
+                            <button class="btn btn-secondary" onclick="exportSystems()">
+                                <i class="fas fa-download"></i> 导出
+                            </button>
                             <button class="btn btn-primary" onclick="openSystemModal()">
                                 <i class="fas fa-plus"></i> 新增系统
                             </button>
@@ -2077,17 +2081,26 @@
             let tableRows = '';
             const firstSystemForms = formsBySystem[firstSystemId] ? formsBySystem[firstSystemId].forms : [];
             firstSystemForms.forEach(form => {
-                const formTypeText = form.formType === 'dynamic' ? '手动添加' : '系统添加';
+                const statusChecked = form.status === 'active' ? 'checked' : '';
                 
                 tableRows += `
                     <tr>
                         <td style="padding-left: 20px;">${form.name}</td>
                         <td>${form.code}</td>
-                        <td>${formTypeText}</td>
                         <td>${form.createTime}</td>
                         <td>${form.creator || '管理员'}</td>
+                        <td>${form.updateTime || '-'}</td>
+                        <td>${form.updater || '-'}</td>
                         <td>
-                            <button class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;"><i class="fas fa-trash"></i> 删除</button>
+                            <label class="switch">
+                                <input type="checkbox" ${statusChecked} onchange="toggleFormStatus(${form.id}, this)">
+                                <span class="slider"></span>
+                            </label>
+                        </td>
+                        <td>
+                            <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;" onclick="editForm(${form.id})">
+                                <i class="fas fa-edit"></i> 编辑
+                            </button>
                         </td>
                     </tr>
                 `;
@@ -2100,8 +2113,11 @@
                             <input type="text" placeholder="请输入搜索内容">
                         </div>
                         <div class="table-actions">
+                            <button class="btn btn-secondary" onclick="exportForms()">
+                                <i class="fas fa-download"></i> 导出
+                            </button>
                             <button class="btn btn-primary" onclick="openFormModal()">
-                                <i class="fas fa-plus"></i> 新建
+                                <i class="fas fa-plus"></i> 新增表单
                             </button>
                         </div>
                     </div>
@@ -2115,10 +2131,12 @@
                                     <thead>
                                         <tr>
                                             <th>表单名称</th>
-                                            <th>单据编码</th>
-                                            <th>表单类型</th>
+                                            <th>表单编码</th>
                                             <th>创建时间</th>
                                             <th>创建人</th>
+                                            <th>修改时间</th>
+                                            <th>修改人</th>
+                                            <th>状态</th>
                                             <th>操作</th>
                                         </tr>
                                     </thead>
@@ -2156,17 +2174,26 @@
             const systemForms = formsBySystem[systemId] || [];
             let tableRows = '';
             systemForms.forEach(form => {
-                const formTypeText = form.formType === 'dynamic' ? '手动添加' : '系统添加';
+                const statusChecked = form.status === 'active' ? 'checked' : '';
                 
                 tableRows += `
                     <tr>
                         <td style="padding-left: 20px;">${form.name}</td>
                         <td>${form.code}</td>
-                        <td>${formTypeText}</td>
                         <td>${form.createTime}</td>
                         <td>${form.creator || '管理员'}</td>
+                        <td>${form.updateTime || '-'}</td>
+                        <td>${form.updater || '-'}</td>
                         <td>
-                            <button class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;"><i class="fas fa-trash"></i> 删除</button>
+                            <label class="switch">
+                                <input type="checkbox" ${statusChecked} onchange="toggleFormStatus(${form.id}, this)">
+                                <span class="slider"></span>
+                            </label>
+                        </td>
+                        <td>
+                            <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;" onclick="editForm(${form.id})">
+                                <i class="fas fa-edit"></i> 编辑
+                            </button>
                         </td>
                     </tr>
                 `;
@@ -2187,7 +2214,6 @@
         function renderPermissionIntegrationPage() {
             const contentArea = document.getElementById('contentArea');
             contentArea.innerHTML = `
-                <div class="page-title">权限集成平台</div>
                 <div class="permission-tabs">
                     <div class="permission-tab ${currentSubPage === 'menu' ? 'active' : ''}" onclick="switchPermissionTab('menu')">
                         <i class="fas fa-list-ul"></i>
@@ -2761,130 +2787,94 @@
                         <div class="menu-permission-tree">
                             ${roleTreeHtml}
                         </div>
-                        <div class="menu-permission-detail" style="background-color: #f5f5f5; padding: 24px; overflow-y: auto;">
-                            <div class="preview-form" style="background-color: #fff; border-radius: 4px; padding: 24px;">
-                                <!-- 基本信息 -->
-                                <div class="preview-section" style="margin-bottom: 16px;">
-                                    <div class="preview-section-title" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #333; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;">
-                                        <span style="font-size: 14px;">⏱️</span>
-                                        <span>基本信息</span>
-                                    </div>
-                                    <div class="preview-fields" style="padding: 0 8px;">
-                                        <div class="preview-field-row" style="display: flex; gap: 16px; flex-wrap: wrap;">
-                                            <div class="preview-field" style="flex: 1; min-width: 180px;">
-                                                <label class="preview-label" style="font-size: 12px; color: #333; margin-bottom: 4px; display: block;">
-                                                    <span style="color: #ff4d4f; margin-right: 2px;">*</span>所属系统
-                                                </label>
-                                                <div class="preview-input-wrapper" style="position: relative; display: flex; align-items: center; padding: 4px 10px; border: 1px solid #d9d9d9; border-radius: 4px; background-color: #f5f5f5; min-height: 28px;">
-                                                    <input type="text" value="客户关系管理系统" readonly style="flex: 1; border: none; background: transparent; font-size: 12px; color: #333; outline: none;">
-                                                </div>
-                                            </div>
-                                            <div class="preview-field" style="flex: 1; min-width: 180px;">
-                                                <label class="preview-label" style="font-size: 12px; color: #333; margin-bottom: 4px; display: block;">
-                                                    <span style="color: #ff4d4f; margin-right: 2px;">*</span>角色
-                                                </label>
-                                                <div class="preview-input-wrapper" style="position: relative; display: flex; align-items: center; padding: 4px 10px; border: 1px solid #d9d9d9; border-radius: 4px; background-color: #f5f5f5; min-height: 28px;">
-                                                    <input type="text" value="${firstRole.roleName}" readonly style="flex: 1; border: none; background: transparent; font-size: 12px; color: #333; outline: none;">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                        <div class="menu-permission-detail">
+                            <div class="detail-header">
+                                <div>
+                                    <h4>角色详情</h4>
+                                    <p style="color: #999; margin-top: 4px;">点击左侧角色查看详情</p>
                                 </div>
-
-                                <!-- 分栏 -->
-                                <div class="preview-section" style="margin-bottom: 16px;">
-                                    <div class="preview-section-title" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #333; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;">
-                                        <span style="font-size: 14px;">⏱️</span>
-                                        <span>分栏</span>
-                                    </div>
+                            </div>
+                            
+                            <div class="detail-section">
+                                <h4><i class="fas fa-info-circle"></i> 基本信息</h4>
+                                <div class="form-group">
+                                    <label>所属系统</label>
+                                    <input type="text" value="客户关系管理系统" readonly style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; background-color: #f5f5f5;">
                                 </div>
+                                <div class="form-group">
+                                    <label>角色</label>
+                                    <input type="text" value="${firstRole.roleName}" readonly style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; background-color: #f5f5f5;">
+                                </div>
+                            </div>
+                            
 
-                                <!-- 权限配置表格 -->
-                                <div class="preview-tag-component" style="margin-top: 16px;">
-                                    <div class="preview-tag-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                        <span class="preview-tag-title" style="font-size: 13px; color: #666;">权限配置</span>
-                                        <span class="preview-tag-count" style="font-size: 12px; color: #999;">已选择 1 条记录</span>
+                            
+                            <div class="detail-section">
+                                <h4><i class="fas fa-table"></i> 权限配置</h4>
+                                <div style="margin-bottom: 12px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <span style="font-size: 14px; color: #666;">权限配置</span>
                                     </div>
-                                    <div class="preview-tag-table" style="border: 1px solid #e8e8e8; border-radius: 4px; overflow: hidden;">
-                                        <div class="preview-table-header" style="display: flex; background-color: #fafafa; border-bottom: 1px solid #e8e8e8;">
-                                            <div class="preview-th" style="width: 36px; padding: 8px; font-size: 12px; font-weight: 500; color: #333; border-right: 1px solid #e8e8e8; text-align: center;">
-                                                <input type="checkbox" style="width: 14px; height: 14px;">
-                                            </div>
-                                            <div class="preview-th" style="width: 50px; padding: 8px; font-size: 12px; font-weight: 500; color: #333; border-right: 1px solid #e8e8e8; text-align: center;">序号</div>
-                                            <div class="preview-th" style="flex: 1; padding: 8px; font-size: 12px; font-weight: 500; color: #333; border-right: 1px solid #e8e8e8;">关联表单</div>
-                                            <div class="preview-th" style="flex: 1; padding: 8px; font-size: 12px; font-weight: 500; color: #333;">页签</div>
+                                    <div style="border: 1px solid #e8e8e8; border-radius: 4px; overflow: hidden;">
+                                        <div style="display: flex; background-color: #fafafa; border-bottom: 1px solid #e8e8e8;">
+                                            <div style="width: 50px; padding: 8px; font-size: 12px; font-weight: 500; color: #333; border-right: 1px solid #e8e8e8; text-align: center;">序号</div>
+                                            <div style="flex: 1; padding: 8px; font-size: 12px; font-weight: 500; color: #333; border-right: 1px solid #e8e8e8;">关联表单</div>
+                                            <div style="flex: 1; padding: 8px; font-size: 12px; font-weight: 500; color: #333;">页签</div>
                                         </div>
-                                        <div class="preview-table-body" style="background-color: #fff;" id="customPermTableBody">
-                                            <div class="preview-table-row custom-perm-row" style="display: flex; border-bottom: 1px solid #e8e8e8; cursor: pointer; position: relative;" onclick="selectCustomPermRow(this)" onmouseenter="showRowDeleteBtn(this)" onmouseleave="hideRowDeleteBtn(this)">
-                                                <div class="preview-td" style="width: 36px; padding: 8px; border-right: 1px solid #e8e8e8; display: flex; align-items: center; justify-content: center;" onclick="event.stopPropagation();">
-                                                    <input type="checkbox" checked style="width: 14px; height: 14px;">
-                                                </div>
-                                                <div class="preview-td" style="width: 50px; padding: 8px; border-right: 1px solid #e8e8e8; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #333; position: relative;">
+                                        <div style="background-color: #fff;">
+                                            <div style="display: flex; border-bottom: 1px solid #e8e8e8; cursor: pointer; position: relative;" onclick="selectCustomPermRow(this)" onmouseenter="showRowDeleteBtn(this)" onmouseleave="hideRowDeleteBtn(this)">
+                                                <div style="width: 50px; padding: 8px; border-right: 1px solid #e8e8e8; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #333; position: relative;">
                                                     <span class="row-index">1</span>
-                                                    <button class="row-delete-btn" style="display: none; position: absolute; width: 20px; height: 20px; border-radius: 50%; background-color: #ff4d4f; color: #fff; border: none; cursor: pointer; align-items: center; justify-content: center; font-size: 14px; padding: 0;" onclick="event.stopPropagation(); deleteCustomPermRow(this)">-</button>
+                                                    <button class="row-delete-btn" style="display: none; position: absolute; width: 20px; height: 20px; border-radius: 4px; background-color: #ff4d4f; color: #fff; border: none; cursor: pointer; align-items: center; justify-content: center; font-size: 14px; padding: 0;" onclick="event.stopPropagation(); deleteCustomPermRow(this)">-</button>
                                                 </div>
-                                                <div class="preview-td" style="flex: 1; padding: 8px; border-right: 1px solid #e8e8e8; display: flex; align-items: center; font-size: 12px; color: #333;">
+                                                <div style="flex: 1; padding: 8px; border-right: 1px solid #e8e8e8; display: flex; align-items: center; font-size: 12px; color: #333;">
                                                     ${firstRole.form}
                                                 </div>
-                                                <div class="preview-td" style="flex: 1; padding: 8px; display: flex; align-items: center; font-size: 12px; color: #333;" onclick="event.stopPropagation(); openTabSelectForRow(this)">
+                                                <div style="flex: 1; padding: 8px; display: flex; align-items: center; font-size: 12px; color: #333;" onclick="event.stopPropagation(); openTabSelectForRow(this)">
                                                     <span class="tab-display" style="cursor: pointer; color: #1890ff;">${firstRole.tab}</span>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="preview-tag-actions" style="display: flex; gap: 16px; margin-top: 8px; padding: 0 8px;">
-                                        <span class="preview-action" style="font-size: 12px; color: #1890ff; cursor: pointer; display: flex; align-items: center; gap: 4px;" onclick="addCustomPermDetailRow()">
-                                            <span>⊕</span>
+                                    <div style="display: flex; gap: 16px; margin-top: 8px;">
+                                        <span style="font-size: 12px; color: #1890ff; cursor: pointer; display: flex; align-items: center; gap: 4px;" onclick="addCustomPermDetailRow()">
+                                            <i class="fas fa-plus"></i>
                                             <span>添加记录</span>
                                         </span>
-                                        <span class="preview-action" style="font-size: 12px; color: #1890ff; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                                            <span>📋</span>
-                                            <span>粘贴新增</span>
-                                        </span>
                                     </div>
                                 </div>
-
-                                <!-- 操作记录 -->
-                                <div class="preview-section" style="margin-top: 16px;">
-                                    <div class="preview-section-title" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #333; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;">
-                                        <span style="font-size: 14px;">📝</span>
-                                        <span>操作记录</span>
-                                    </div>
-                                    <div style="padding: 0 8px;">
-                                        <div style="display: flex; gap: 16px; margin-bottom: 8px;">
-                                            <div style="flex: 1;">
-                                                <label style="font-size: 12px; color: #666; margin-bottom: 4px; display: block;">创建时间</label>
-                                                <div style="padding: 6px 10px; background-color: #f5f5f5; border-radius: 4px; font-size: 12px; color: #333;">${firstRole.createTime}</div>
-                                            </div>
-                                            <div style="flex: 1;">
-                                                <label style="font-size: 12px; color: #666; margin-bottom: 4px; display: block;">创建人</label>
-                                                <div style="padding: 6px 10px; background-color: #f5f5f5; border-radius: 4px; font-size: 12px; color: #333;">${firstRole.creator}</div>
-                                            </div>
+                            </div>
+                            
+                            <div class="detail-section">
+                                <h4><i class="fas fa-history"></i> 操作记录</h4>
+                                <div style="padding: 0 8px;">
+                                    <div style="display: flex; gap: 16px; margin-bottom: 8px;">
+                                        <div style="flex: 1;">
+                                            <label style="font-size: 12px; color: #666; margin-bottom: 4px; display: block;">创建时间</label>
+                                            <div style="padding: 6px 10px; background-color: #f5f5f5; border-radius: 4px; font-size: 12px; color: #333;">${firstRole.createTime}</div>
                                         </div>
-                                        <div style="display: flex; gap: 16px;">
-                                            <div style="flex: 1;">
-                                                <label style="font-size: 12px; color: #666; margin-bottom: 4px; display: block;">更新时间</label>
-                                                <div style="padding: 6px 10px; background-color: #f5f5f5; border-radius: 4px; font-size: 12px; color: #333;">${firstRole.updateTime}</div>
-                                            </div>
-                                            <div style="flex: 1;">
-                                                <label style="font-size: 12px; color: #666; margin-bottom: 4px; display: block;">更新人</label>
-                                                <div style="padding: 6px 10px; background-color: #f5f5f5; border-radius: 4px; font-size: 12px; color: #333;">${firstRole.updater}</div>
-                                            </div>
+                                        <div style="flex: 1;">
+                                            <label style="font-size: 12px; color: #666; margin-bottom: 4px; display: block;">创建人</label>
+                                            <div style="padding: 6px 10px; background-color: #f5f5f5; border-radius: 4px; font-size: 12px; color: #333;">${firstRole.creator}</div>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 16px;">
+                                        <div style="flex: 1;">
+                                            <label style="font-size: 12px; color: #666; margin-bottom: 4px; display: block;">更新时间</label>
+                                            <div style="padding: 6px 10px; background-color: #f5f5f5; border-radius: 4px; font-size: 12px; color: #333;">${firstRole.updateTime}</div>
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label style="font-size: 12px; color: #666; margin-bottom: 4px; display: block;">更新人</label>
+                                            <div style="padding: 6px 10px; background-color: #f5f5f5; border-radius: 4px; font-size: 12px; color: #333;">${firstRole.updater}</div>
                                         </div>
                                     </div>
                                 </div>
-
-                                <!-- 角色成员 -->
-                                <div class="preview-section" style="margin-top: 16px;">
-                                    <div class="preview-section-title" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #333; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;">
-                                        <span style="font-size: 14px;">👥</span>
-                                        <span>角色成员 (8)</span>
-                                    </div>
-                                    <div style="padding: 0 8px;">
-                                        <div style="font-size: 12px; color: #333; line-height: 1.8;">
-                                            王硕、金粒子、谭亚雯、李晨博、甄可欣、谢峰、郭攀、程一航
-                                        </div>
-                                    </div>
+                            </div>
+                            
+                            <div class="detail-section">
+                                <h4><i class="fas fa-users"></i> 角色成员 (8)</h4>
+                                <div style="border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; font-size: 13px; color: #666; background-color: #f9f9f9;">
+                                    王硕、金粒子、谭亚雯、李晨博、甄可欣、谢峰、郭攀、程一航
                                 </div>
                             </div>
                         </div>
@@ -3418,6 +3408,13 @@
             // 这里可以添加切换系统状态的逻辑
         }
 
+        // 切换表单状态
+        function toggleFormStatus(formId, checkbox) {
+            const newStatus = checkbox.checked ? 'active' : 'inactive';
+            // 这里可以添加切换表单状态的逻辑
+            console.log('表单ID:', formId, '新状态:', newStatus);
+        }
+
         // 确认状态更改
         function confirmStatusChange() {
             // 这里可以添加确认状态更改的逻辑
@@ -3475,6 +3472,21 @@
         function saveForm() {
             // 这里可以添加保存表单的逻辑
             closeModal('formModal');
+        }
+
+        // 切换表单状态显示文本
+        function toggleFormStatusText(checkbox) {
+            const statusText = document.getElementById('formStatusText');
+            if (statusText) {
+                statusText.textContent = checkbox.checked ? '启用' : '停用';
+            }
+        }
+
+        // 编辑表单
+        function editForm(formId) {
+            // 这里可以添加编辑表单的逻辑
+            console.log('编辑表单:', formId);
+            openFormModal();
         }
 
         // 选择表单
@@ -3914,10 +3926,15 @@
                                 </div>
 
                                 <div class="detail-section">
-                                    <div class="detail-tabs">
-                                        <div class="detail-tab active" onclick="switchDetailTab(this, 'business')">业务权限</div>
-                                        <div class="detail-tab" onclick="switchDetailTab(this, 'backend')">后台管理权限</div>
-                                        <div class="detail-tab" onclick="switchDetailTab(this, 'external')">外部系统</div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e8e8e8;">
+                                        <div class="detail-tabs" style="border-bottom: none;">
+                                            <div class="detail-tab active" onclick="switchDetailTab(this, 'business')">业务权限</div>
+                                            <div class="detail-tab" onclick="switchDetailTab(this, 'backend')">后台管理权限</div>
+                                            <div class="detail-tab" onclick="switchDetailTab(this, 'external')">外部系统</div>
+                                        </div>
+                                        <button class="btn btn-primary" onclick="saveExternalPermissions()" style="margin-right: 16px;">
+                                            <i class="fas fa-save"></i> 保存
+                                        </button>
                                     </div>
 
                                     <!-- 业务权限内容 -->
@@ -4573,6 +4590,34 @@
         // 保存权限
         function savePermissions() {
             alert('权限保存成功');
+        }
+
+        // 保存外部系统权限
+        function saveExternalPermissions() {
+            // 保存角色配置成功
+            alert('保存角色配置成功');
+            
+            // 询问是否跳转至权限管理-自定义数据权限页面
+            if (confirm('是否跳转至权限管理-自定义数据权限配置页面？')) {
+                // 点击确定，保存角色配置成功，跳转到权限管理-自定义数据权限页面
+                currentPage = 'auth';
+                currentSubPage = 'custom';
+                document.querySelector('.nav-item.active')?.classList.remove('active');
+                document.querySelector('.nav-item[onclick="switchNav(\'auth\')"]')?.classList.add('active');
+                document.getElementById('topNavTitle').textContent = '权限集成平台';
+                renderPermissionIntegrationPage();
+            }
+            // 点击取消则留在当前页面
+        }
+
+        // 导出系统列表
+        function exportSystems() {
+            alert('系统列表导出成功');
+        }
+
+        // 导出表单列表
+        function exportForms() {
+            alert('表单列表导出成功');
         }
 
         // 详情标签页切换
